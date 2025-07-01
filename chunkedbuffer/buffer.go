@@ -12,11 +12,18 @@ import (
 
 const chunkSize = 4 * 1024
 
-// ReadCloser is a simple interface for readers with path and close functionality
+// ReadCloser is a standard interface for readers with path and close functionality
 type ReadCloser interface {
-	io.Reader
 	Path() string
-	Close() error
+	Read(p []byte) (int, error)
+	MustClose()
+}
+
+// WriteCloser is a standard interface for writers with path and close functionality
+type WriteCloser interface {
+	Path() string
+	Write(p []byte) (int, error)
+	MustClose()
 }
 
 // Get returns Buffer from the pool.
@@ -250,10 +257,9 @@ func (r *reader) Read(p []byte) (int, error) {
 	return n, nil
 }
 
-func (r *reader) Close() error {
+func (r *reader) MustClose() {
 	r.cb = nil
 	r.offset = 0
-	return nil
 }
 
 func getChunk() *[chunkSize]byte {

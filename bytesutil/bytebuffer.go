@@ -8,11 +8,18 @@ import (
 	"github.com/slicingmelon/go-bytesutil/slicesutil"
 )
 
-// ReadCloser is a simple interface for readers with path and close functionality
+// ReadCloser is a standard interface for readers with path and close functionality
 type ReadCloser interface {
-	io.Reader
 	Path() string
-	Close() error
+	Read(p []byte) (int, error)
+	MustClose()
+}
+
+// WriteCloser is a standard interface for writers with path and close functionality
+type WriteCloser interface {
+	Path() string
+	Write(p []byte) (int, error)
+	MustClose()
 }
 
 // ByteBuffer implements a simple byte buffer.
@@ -124,12 +131,11 @@ func (r *reader) Read(p []byte) (int, error) {
 	return n, err
 }
 
-// Close closes bb for subsequent reuse.
-func (r *reader) Close() error {
+// MustClose closes bb for subsequent reuse.
+func (r *reader) MustClose() {
 	r.bb = nil
 	r.data = ""
 	r.readOffset = 0
-	return nil
 }
 
 // ByteBufferPool is a pool of ByteBuffers.
