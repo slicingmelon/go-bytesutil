@@ -19,7 +19,7 @@ A high-performance collection of Go packages for buffered writing, byte manipula
 
 - **Zero external dependencies** - completely self-contained
 - **High performance** - optimized for speed and memory efficiency
-- **Battle-tested** - code extracted from production VictoriaMetrics
+- **Heavy-tested** - most of the code taken from VictoriaMetrics/lib
 - **Clean interfaces** - no metrics collection bloat or unnecessary complexity
 - **Memory efficient** - smart pooling and reuse patterns
 - **Thread-safe** - concurrent access support where needed
