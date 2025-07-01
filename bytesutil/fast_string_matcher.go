@@ -4,8 +4,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/fasttime"
+	"time"
 )
 
 // FastStringMatcher implements fast matcher for strings.
@@ -25,6 +24,11 @@ type fsmEntry struct {
 	ok             bool
 }
 
+// unixTimestamp returns the current unix timestamp
+func unixTimestamp() uint64 {
+	return uint64(time.Now().Unix())
+}
+
 // NewFastStringMatcher creates new matcher, which applies matchFunc to strings passed to Match()
 //
 // matchFunc must return the same result for the same input.
@@ -32,7 +36,7 @@ func NewFastStringMatcher(matchFunc func(s string) bool) *FastStringMatcher {
 	fsm := &FastStringMatcher{
 		matchFunc: matchFunc,
 	}
-	fsm.lastCleanupTime.Store(fasttime.UnixTimestamp())
+	fsm.lastCleanupTime.Store(unixTimestamp())
 	return fsm
 }
 
@@ -42,7 +46,7 @@ func (fsm *FastStringMatcher) Match(s string) bool {
 		return fsm.matchFunc(s)
 	}
 
-	ct := fasttime.UnixTimestamp()
+	ct := unixTimestamp()
 	v, ok := fsm.m.Load(s)
 	if ok {
 		// Fast path - s match result is found in the cache.

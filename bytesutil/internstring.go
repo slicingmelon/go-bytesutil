@@ -7,8 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/fasttime"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/timeutil"
+	"github.com/slicingmelon/go-bytesutil/fastrand"
 )
 
 var (
@@ -19,6 +18,16 @@ var (
 	cacheExpireDuration = flag.Duration("internStringCacheExpireDuration", 6*time.Minute, "The expiry duration for caches for interned strings. "+
 		"See https://en.wikipedia.org/wiki/String_interning . See also -internStringMaxLen and -internStringDisableCache")
 )
+
+// AddJitterToDuration adds random jitter to d and returns the result.
+func AddJitterToDuration(d time.Duration) time.Duration {
+	dv := d / 10
+	if dv > 10*time.Second {
+		dv = 10 * time.Second
+	}
+	p := float64(fastrand.Uint32()) / (1 << 32)
+	return d + time.Duration(p*float64(dv))
+}
 
 type internStringMap struct {
 	mutableLock  sync.Mutex
@@ -41,7 +50,7 @@ func newInternStringMap() *internStringMap {
 	m.readonly.Store(&readonly)
 
 	go func() {
-		cleanupInterval := timeutil.AddJitterToDuration(*cacheExpireDuration) / 2
+		cleanupInterval := AddJitterToDuration(*cacheExpireDuration) / 2
 		ticker := time.NewTicker(cleanupInterval)
 		for range ticker.C {
 			m.cleanup()
@@ -99,7 +108,7 @@ func (m *internStringMap) migrateMutableToReadonlyLocked() {
 	for k, e := range readonly {
 		readonlyCopy[k] = e
 	}
-	deadline := fasttime.UnixTimestamp() + uint64(cacheExpireDuration.Seconds()+0.5)
+	deadline := unixTimestamp() + uint64(cacheExpireDuration.Seconds()+0.5)
 	for k, s := range m.mutable {
 		readonlyCopy[k] = internStringMapEntry{
 			s:        s,
@@ -112,7 +121,7 @@ func (m *internStringMap) migrateMutableToReadonlyLocked() {
 
 func (m *internStringMap) cleanup() {
 	readonly := m.getReadonly()
-	currentTime := fasttime.UnixTimestamp()
+	currentTime := unixTimestamp()
 	needCleanup := false
 	for _, e := range readonly {
 		if e.deadline <= currentTime {

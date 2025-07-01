@@ -5,9 +5,15 @@ import (
 	"io"
 	"sync"
 
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/filestream"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/slicesutil"
+	"github.com/slicingmelon/go-bytesutil/slicesutil"
 )
+
+// ReadCloser is a simple interface for readers with path and close functionality
+type ReadCloser interface {
+	io.Reader
+	Path() string
+	Close() error
+}
 
 // ByteBuffer implements a simple byte buffer.
 type ByteBuffer struct {
@@ -84,7 +90,7 @@ func (bb *ByteBuffer) ReadFrom(r io.Reader) (int64, error) {
 }
 
 // NewReader returns new reader for the given bb.
-func (bb *ByteBuffer) NewReader() filestream.ReadCloser {
+func (bb *ByteBuffer) NewReader() ReadCloser {
 	return &reader{
 		bb:   bb,
 		data: ToUnsafeString(bb.B),
@@ -118,11 +124,12 @@ func (r *reader) Read(p []byte) (int, error) {
 	return n, err
 }
 
-// MustClose closes bb for subsequent reuse.
-func (r *reader) MustClose() {
+// Close closes bb for subsequent reuse.
+func (r *reader) Close() error {
 	r.bb = nil
 	r.data = ""
 	r.readOffset = 0
+	return nil
 }
 
 // ByteBufferPool is a pool of ByteBuffers.

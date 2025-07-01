@@ -7,12 +7,17 @@ import (
 	"io"
 	"sync"
 
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/bytesutil"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/filestream"
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
+	"github.com/slicingmelon/go-bytesutil/bytesutil"
 )
 
 const chunkSize = 4 * 1024
+
+// ReadCloser is a simple interface for readers with path and close functionality
+type ReadCloser interface {
+	io.Reader
+	Path() string
+	Close() error
+}
 
 // Get returns Buffer from the pool.
 //
@@ -187,7 +192,7 @@ func (cb *Buffer) WriteTo(w io.Writer) (int64, error) {
 // If w can return errors, then use WriteTo function instead.
 func (cb *Buffer) MustWriteTo(w io.Writer) {
 	if _, err := cb.WriteTo(w); err != nil {
-		logger.Panicf("BUG: unexpected error writing Buffer data to the provided writer: %s", err)
+		panic(fmt.Sprintf("BUG: unexpected error writing Buffer data to the provided writer: %s", err))
 	}
 }
 
@@ -202,7 +207,7 @@ func (cb *Buffer) MustClose() {
 }
 
 // NewReader returns a reader for reading the data stored in cb.
-func (cb *Buffer) NewReader() filestream.ReadCloser {
+func (cb *Buffer) NewReader() ReadCloser {
 	return &reader{
 		cb: cb,
 	}
@@ -225,7 +230,7 @@ func (r *reader) Read(p []byte) (int, error) {
 
 	if chunkIdx == len(r.cb.chunks) {
 		if offset != 0 {
-			panic(fmt.Errorf("BUG: offset must be 0; got %d", offset))
+			return 0, fmt.Errorf("BUG: offset must be 0; got %d", offset)
 		}
 		return 0, io.EOF
 	}
@@ -245,9 +250,10 @@ func (r *reader) Read(p []byte) (int, error) {
 	return n, nil
 }
 
-func (r *reader) MustClose() {
+func (r *reader) Close() error {
 	r.cb = nil
 	r.offset = 0
+	return nil
 }
 
 func getChunk() *[chunkSize]byte {

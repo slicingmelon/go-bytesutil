@@ -4,8 +4,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-
-	"github.com/VictoriaMetrics/VictoriaMetrics/lib/fasttime"
 )
 
 // FastStringTransformer implements fast transformer for strings.
@@ -32,7 +30,7 @@ func NewFastStringTransformer(transformFunc func(s string) string) *FastStringTr
 	fst := &FastStringTransformer{
 		transformFunc: transformFunc,
 	}
-	fst.lastCleanupTime.Store(fasttime.UnixTimestamp())
+	fst.lastCleanupTime.Store(unixTimestamp())
 	return fst
 }
 
@@ -42,13 +40,12 @@ func (fst *FastStringTransformer) Transform(s string) string {
 		sTransformed := fst.transformFunc(s)
 		if sTransformed == s {
 			// Clone a string in order to protect from cases when s contains unsafe string.
-			// See https://github.com/VictoriaMetrics/VictoriaMetrics/issues/3227
 			sTransformed = strings.Clone(sTransformed)
 		}
 		return sTransformed
 	}
 
-	ct := fasttime.UnixTimestamp()
+	ct := unixTimestamp()
 	v, ok := fst.m.Load(s)
 	if ok {
 		// Fast path - the transformed s is found in the cache.
@@ -65,7 +62,6 @@ func (fst *FastStringTransformer) Transform(s string) string {
 	// Make a copy of s in order to limit memory usage to the s length,
 	// since the s may point to bigger string.
 	// This also protects from the case when s contains unsafe string, which points to a temporary byte slice.
-	// See https://github.com/VictoriaMetrics/VictoriaMetrics/issues/3227
 	s = strings.Clone(s)
 	if sTransformed == s {
 		// point sTransformed to just allocated s, since it may point to s,
