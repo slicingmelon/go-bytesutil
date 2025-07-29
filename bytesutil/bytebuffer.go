@@ -61,6 +61,13 @@ func (bb *ByteBuffer) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
+// WriteString appends the contents of s to the buffer.
+// It is equivalent to Write([]byte(s)).
+func (bb *ByteBuffer) WriteString(s string) (int, error) {
+	bb.B = append(bb.B, s...)
+	return len(s), nil
+}
+
 // WriteTo writes bb contents to w.
 func (bb *ByteBuffer) WriteTo(w io.Writer) (int64, error) {
 	n, err := w.Write(bb.B)
